@@ -81,6 +81,14 @@ static const struct hl_layout hl_layouts[] = {
 	 .api = &nulink_usb_layout_api,
 	},
 #endif
+#if BUILD_HLADAPTER_WLINK
+	{
+	 .name = "wlink",
+	 .open = hl_layout_open,
+	 .close = hl_layout_close,
+	 .api = &wlink_usb_layout_api,
+	},
+#endif
 	{.name = NULL, /* END OF TABLE */ },
 };
 

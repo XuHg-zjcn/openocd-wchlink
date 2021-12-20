@@ -3039,7 +3039,7 @@ version reported is V2.J21.S4.
 Currently Not Supported.
 @end deffn
 
-@deffn {Config Command} {hla_layout} (@option{stlink}|@option{icdi}|@option{nulink})
+@deffn {Config Command} {hla_layout} (@option{stlink}|@option{icdi}|@option{nulink}|@option{wlink})
 Specifies the adapter layout to use.
 @end deffn
 

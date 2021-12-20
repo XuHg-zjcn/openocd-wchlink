@@ -142,6 +142,9 @@ endif
 if HLADAPTER_NULINK
 DRIVERFILES += %D%/nulink_usb.c
 endif
+if HLADAPTER_WLINK
+DRIVERFILES += %D%/wlink_usb.c
+endif
 if RSHIM
 DRIVERFILES += %D%/rshim.c
 endif
