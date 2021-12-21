@@ -179,7 +179,7 @@ static int wlink_usb_open(struct hl_interface_param_s *param, void **fd)
 
 	jtag_libusb_open(param->vid, param->pid, &h->dev_handle, NULL);
 	if (!h->dev_handle) {
-		//LOG_ERROR("unable to open Nu-Link device 0x%" PRIx16 ":0x%" PRIx16, target_vid, target_pid);
+		LOG_ERROR("unable to open WCH-Link device 0x%" PRIx16 ":0x%" PRIx16, *param->vid, *param->pid);
 		goto error_open;
 	}
 
