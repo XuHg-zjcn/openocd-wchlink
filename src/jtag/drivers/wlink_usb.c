@@ -53,9 +53,9 @@ struct wlink_usb_handle_s {
 #define EP_SER_RX 0x83
 
 /* ICE Command */
-#define CMD_INIT1 0x810d0101
-#define CMD_INIT2 0x810d0102
-#define CMD_INIT3 0x810d0103
+#define CMD_GET_VER 0x810d0101
+#define CMD_INIT2 0x810d0102  //未知
+#define CMD_INIT3 0x810d0103  //未知
 #define CMD_MCU_RESET 0x810b0100
 
 
@@ -126,7 +126,7 @@ static int wlink_usb_halt(void *handle)
 
 	wlink_usb_init_buffer(handle, 4 * 1);
 	/* set command ID */
-	h_u32_to_le(h->cmdbuf + h->cmdidx, CMD_INIT1);
+	h_u32_to_le(h->cmdbuf + h->cmdidx, CMD_GET_VER);
 	res = wlink_usb_xfer_rw(handle, NULL, 0);
 	h_u32_to_le(h->cmdbuf + h->cmdidx, CMD_INIT2);
 	res = wlink_usb_xfer_rw(handle, NULL, 0);
