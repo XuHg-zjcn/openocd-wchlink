@@ -144,6 +144,9 @@ extern struct adapter_driver xds110_adapter_driver;
 #if BUILD_HLADAPTER_STLINK == 1
 extern struct adapter_driver stlink_dap_adapter_driver;
 #endif
+#if BUILD_WLINK == 1
+extern struct adapter_driver wlink_adapter_driver;
+#endif
 #if BUILD_RSHIM == 1
 extern struct adapter_driver rshim_dap_adapter_driver;
 #endif
@@ -254,6 +257,9 @@ struct adapter_driver *adapter_drivers[] = {
 #endif
 #if BUILD_HLADAPTER_STLINK == 1
 		&stlink_dap_adapter_driver,
+#endif
+#if BUILD_WLINK == 1
+		&wlink_adapter_driver,
 #endif
 #if BUILD_RSHIM == 1
 		&rshim_dap_adapter_driver,

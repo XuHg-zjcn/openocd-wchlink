@@ -124,7 +124,7 @@ m4_define([USB1_ADAPTERS],
 	[[rlink], [Raisonance RLink JTAG Programmer], [RLINK]],
 	[[usbprog], [USBProg JTAG Programmer], [USBPROG]],
 	[[aice], [Andes JTAG Programmer], [AICE]],
-	[[wlink], [WCH-Link], [HLADAPTER_WLINK]]])
+	[[wlink], [WCH-Link], [WLINK]]])
 
 m4_define([HIDAPI_ADAPTERS],
 	[[[cmsis_dap], [CMSIS-DAP Compliant Debugger], [CMSIS_DAP_HID]],
@@ -663,7 +663,7 @@ AS_IF([test "x$enable_stlink" != "xno" -o "x$enable_ti_icdi" != "xno" -o "x$enab
 AM_CONDITIONAL([HLADAPTER_STLINK], [test "x$enable_stlink" != "xno"])
 AM_CONDITIONAL([HLADAPTER_ICDI], [test "x$enable_ti_icdi" != "xno"])
 AM_CONDITIONAL([HLADAPTER_NULINK], [test "x$enable_nulink" != "xno"])
-AM_CONDITIONAL([HLADAPTER_WLINK], [test "x$enable_wlink" != "xno"])
+AM_CONDITIONAL([WLINK], [test "x$enable_wlink" != "xno"])
 
 AS_IF([test "x$enable_jlink" != "xno"], [
   AS_IF([test "x$use_internal_libjaylink" = "xyes"], [

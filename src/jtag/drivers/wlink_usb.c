@@ -40,181 +40,168 @@
 
 struct wlink_usb_handle_s {
 	libusb_device_handle *dev_handle;
-	uint8_t ep;
-	uint8_t cmdidx;
+	int cmd_size_tx;
+	int cmd_size_rx;
 	uint8_t cmdbuf[WLINK_BUFF_SIZE];
+	int data_size;
+	uint8_t databuf[WLINK_BUFF_SIZE];
 };
 
-#define EP_CMD_TX 0x01
-#define EP_CMD_RX 0x81
-#define EP_DAT_TX 0x02
-#define EP_DAT_RX 0x82
-#define EP_SER_TX 0x03
-#define EP_SER_RX 0x83
+static struct wlink_usb_handle_s *wlink_usb;
+
+const uint16_t wlink_vids[] = {0x1a86, 0x0000};
+const uint16_t wlink_pids[] = {0x8010, 0x0000};
+
+
+#define EP_IN        0x80
+#define EP_OUT       0x00
+
+#define EP_CMD_TX    (0x01 | EP_OUT)
+#define EP_CMD_RX    (0x01 | EP_IN)
+#define EP_DAT_TX    (0x02 | EP_OUT)
+#define EP_DAT_RX    (0x02 | EP_IN)
+#define EP_SER_TX    (0x03 | EP_OUT)
+#define EP_SER_RX    (0x03 | EP_IN)
 
 /* ICE Command */
-#define CMD_GET_VER 0x810d0101
-#define CMD_INIT2 0x810d0102  //未知
-#define CMD_INIT3 0x810d0103  //未知
-#define CMD_MCU_RESET 0x810b0100
+#define CMD_GET_VER    0x810d0101
+#define CMD_INIT2      0x810d0102  //未知
+#define CMD_INIT3      0x810d0103  //未知
+#define CMD_MCU_RESET  0x810b0100
 
 
-static int wlink_usb_xfer_rw(void *handle, uint8_t *buf, int size)
+static int wlink_cmd_rw(void)
 {
-	struct wlink_usb_handle_s *h = handle;
 	int tr, ret;
 
-	assert(handle);
-
-        ret = jtag_libusb_bulk_write(h->dev_handle, EP_CMD_TX, (char *)h->cmdbuf,
-                                     h->cmdidx, WLINK_WRITE_TIMEOUT, &tr);
-        if (ret || tr != h->cmdidx)
+        ret = jtag_libusb_bulk_write(wlink_usb->dev_handle, EP_CMD_TX, (char *)wlink_usb->cmdbuf,
+                                     wlink_usb->cmd_size_tx, WLINK_WRITE_TIMEOUT, &tr);
+        if (ret || tr != wlink_usb->cmd_size_tx)
                 return ERROR_FAIL;
+	ret = jtag_libusb_bulk_read(wlink_usb->dev_handle, EP_CMD_RX, (char *)wlink_usb->cmdbuf,
+				    wlink_usb->cmd_size_rx, WLINK_READ_TIMEOUT, &tr);
+	if (ret || tr != wlink_usb->cmd_size_rx)
+		return ERROR_FAIL;
 
-        if (h->ep & 0x80) {
-                ret = jtag_libusb_bulk_read(h->dev_handle, h->ep, (char *)buf,
-                                             size, WLINK_WRITE_TIMEOUT, &tr);
-                if (ret || tr != size) {
-                        LOG_DEBUG("bulk read failed");
-                        return ERROR_FAIL;
-                }
-        } else if (h->ep != 0x00) {
-                ret = jtag_libusb_bulk_write(h->dev_handle, h->ep, (char *)buf,
-                                            size, WLINK_READ_TIMEOUT, &tr);
-                if (ret || tr != size) {
-                        LOG_DEBUG("bulk write failed");
-                        return ERROR_FAIL;
-                }
+        return ERROR_OK;
+}
+
+
+static int wlink_usb_close(void)
+{
+	free(wlink_usb);
+	return ERROR_OK;
+}
+
+static int wlink_usb_open(void)
+{
+	wlink_usb = calloc(1, sizeof(*wlink_usb));
+	LOG_DEBUG("wlink_usb_open");
+
+	if (!wlink_usb) {
+		LOG_ERROR("Out of memory");
+		goto error_open;
+	}
+
+	jtag_libusb_open(wlink_vids, wlink_pids, &wlink_usb->dev_handle, NULL);
+	if (!wlink_usb->dev_handle) {
+		LOG_ERROR("unable to open WCH-Link device 0x%" PRIx16 ":0x%" PRIx16, wlink_vids[0], wlink_pids[0]);
+		goto error_open;
+	}
+
+	jtag_libusb_set_configuration(wlink_usb->dev_handle, 0);
+
+	if (libusb_claim_interface(wlink_usb->dev_handle, 0) != ERROR_OK) {
+		LOG_DEBUG("claim interface failed");
+		return ERROR_FAIL;
+	}
+
+	return ERROR_OK;
+
+error_open:
+	wlink_usb_close();
+	return ERROR_FAIL;
+}
+
+
+static int wlink_init(void)
+{
+	wlink_usb_open();
+	h_u32_to_be(wlink_usb->cmdbuf, CMD_GET_VER);
+	wlink_usb->cmd_size_tx = 4;
+	wlink_usb->cmd_size_rx = 5;
+	wlink_cmd_rw();
+	LOG_INFO("WCH-Link version %d.%d", wlink_usb->cmdbuf[3], wlink_usb->cmdbuf[4]);
+	return ERROR_OK;
+}
+
+
+static int wlink_execute_command(struct jtag_command *cmd)
+{
+        switch (cmd->type) {
+	       case JTAG_RESET:
+		 //TODO: add RESET
+                case JTAG_STABLECLOCKS:
+                        LOG_ERROR("JTAG_STABLECLOCKS");
+                        break;
+                case JTAG_RUNTEST:
+                        LOG_ERROR("JTAG_RUNTEST");
+                        break;
+                case JTAG_TLR_RESET:
+		        LOG_ERROR("JTAG_TLR_REST");
+                        //jlink_execute_statemove(cmd);
+                        break;
+                case JTAG_PATHMOVE:
+		        LOG_ERROR("JTAG_PATHMOVE");
+                        //jlink_execute_pathmove(cmd);
+                        break;
+                case JTAG_SCAN:
+		        LOG_ERROR("JTAG_SCAN");
+                        //jlink_execute_scan(cmd);
+                        break;
+                case JTAG_SLEEP:
+		        LOG_ERROR("JTAG_SLEEP");
+		        //jlink_execute_sleep(cmd);
+                        break;
+                default:
+                        LOG_ERROR("BUG: Unknown JTAG command type encountered");
+                        return ERROR_JTAG_QUEUE_FAILED;
         }
 
         return ERROR_OK;
 }
 
-static void wlink_usb_init_buffer(void *handle, uint32_t size)
+static int wlink_execute_queue(void)
 {
-	struct wlink_usb_handle_s *h = handle;
+        int ret;
+        struct jtag_command *cmd = jtag_command_queue;
 
-	h->cmdidx = 0;
+        while (cmd) {
+                ret = wlink_execute_command(cmd);
 
-	memset(h->cmdbuf, 0, WLINK_BUFF_SIZE);
-	//memset(h->tempbuf, 0, h->max_packet_size);
-	//memset(h->databuf, 0, h->max_packet_size);
+                if (ret != ERROR_OK)
+                        return ret;
+
+                cmd = cmd->next;
+        }
+
+        return ERROR_OK;
 }
 
-static int wlink_usb_reset(void *handle)
-{
-	struct wlink_usb_handle_s *h = handle;
+//static const struct command_registran
 
-	LOG_DEBUG("wlink_usb_reset");
-
-	assert(handle);
-
-	wlink_usb_init_buffer(handle, 4 * 4);
-	/* set command ID */
-	h_u32_to_le(h->cmdbuf + h->cmdidx, CMD_MCU_RESET);
-	//return wlink_usb_xfer(handle, h->databuf, 4);
-	return wlink_usb_xfer_rw(h->dev_handle, NULL, 0);
-}
-
-static int wlink_usb_halt(void *handle)
-{
-	struct wlink_usb_handle_s *h = handle;
-	int res;
-	LOG_DEBUG("wlink_usb_halt");
-
-	assert(handle);
-
-	wlink_usb_init_buffer(handle, 4 * 1);
-	/* set command ID */
-	h_u32_to_le(h->cmdbuf + h->cmdidx, CMD_GET_VER);
-	res = wlink_usb_xfer_rw(handle, NULL, 0);
-	h_u32_to_le(h->cmdbuf + h->cmdidx, CMD_INIT2);
-	res = wlink_usb_xfer_rw(handle, NULL, 0);
-	h_u32_to_le(h->cmdbuf + h->cmdidx, CMD_INIT3);
-	res = wlink_usb_xfer_rw(handle, NULL, 0);
-
-	//LOG_DEBUG("Nu-Link stop_pc 0x%08" PRIx32, le_to_h_u32(h->databuf + 4));
-
-	return res;
-}
-
-static int wlink_usb_override_target(const char *targetname)
-{
-        return !strcmp(targetname, "riscv");
-}
-
-static int wlink_usb_close(void *handle)
-{
-	struct wlink_usb_handle_s *h = handle;
-
-	LOG_DEBUG("wlink_usb_close");
-
-	if (h && h->dev_handle)
-		jtag_libusb_close(h->dev_handle);
-
-	free(h);
-
-	//hid_exit();
-
-	return ERROR_OK;
-}
-
-static int wlink_usb_open(struct hl_interface_param_s *param, void **fd)
-{
-	LOG_DEBUG("wlink_usb_open");
-
-	if (param->transport != HL_TRANSPORT_JTAG)
-		return TARGET_UNKNOWN;
-
-	if (!param->vid[0] && !param->pid[0]) {
-		LOG_ERROR("Missing vid/pid");
-		return ERROR_FAIL;
-	}
-
-	struct wlink_usb_handle_s *h = calloc(1, sizeof(*h));
-	if (!h) {
-		LOG_ERROR("Out of memory");
-		goto error_open;
-	}
-
-	jtag_libusb_open(param->vid, param->pid, &h->dev_handle, NULL);
-	if (!h->dev_handle) {
-		LOG_ERROR("unable to open WCH-Link device 0x%" PRIx16 ":0x%" PRIx16, *param->vid, *param->pid);
-		goto error_open;
-	}
-
-	h->cmdidx = 0;
-
-
-	/* get cpuid, so we can determine the max page size
-	 * start with a safe default */
-	//h->max_mem_packet = (1 << 10);
-
-	LOG_DEBUG("wlink_usb_open: we manually perform wlink_usb_reset");
-	wlink_usb_reset(h);
-
-	*fd = h;
-
-	//free(target_serial);
-	return ERROR_OK;
-
-error_open:
-	wlink_usb_close(h);
-	//free(target_serial);
-
-	return ERROR_FAIL;
-}
-
-struct hl_layout_api_s wlink_usb_layout_api = {
-	.open = wlink_usb_open,
-	.close = wlink_usb_close,
-	.reset = wlink_usb_reset,
-	.halt = wlink_usb_halt,
-	.override_target = wlink_usb_override_target,
+static struct jtag_interface wlink_jtag_ops = {
+        .execute_queue = &wlink_execute_queue,
 };
 
-struct adapter_driver wlink_dap_adapter_driver = {
+struct adapter_driver wlink_adapter_driver = {
 	.name = "wlink",
 	.transports = jtag_only,
-	//.dap_jtag_ops = &stlink_dap_ops,
+	//.commands = 
+
+	.init = &wlink_init,
+	//.quit = &wlink_quit,
+	//.reset = &wlink_reset,
+	
+	.jtag_ops = &wlink_jtag_ops,
 };
