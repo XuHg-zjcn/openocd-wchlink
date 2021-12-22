@@ -64,10 +64,10 @@ const uint16_t wlink_pids[] = {0x8010, 0x0000};
 #define EP_SER_RX    (0x03 | EP_IN)
 
 /* ICE Command */
-#define CMD_GET_VER    0x810d0101
-#define CMD_INIT2      0x810d0102  //未知
-#define CMD_INIT3      0x810d0103  //未知
-#define CMD_MCU_RESET  0x810b0100
+#define CMD_GET_VERSION  0x810d0101
+#define CMD_CONN_TARGET  0x810d0102
+#define CMD_INIT3        0x810d0103  //未知
+#define CMD_MCU_RESET    0x810b0100
 
 
 static int wlink_cmd_rw(void)
@@ -127,7 +127,8 @@ error_open:
 static int wlink_init(void)
 {
 	wlink_usb_open();
-	h_u32_to_be(wlink_usb->cmdbuf, CMD_GET_VER);
+
+	h_u32_to_be(wlink_usb->cmdbuf, CMD_GET_VERSION);
 	wlink_usb->cmd_size_tx = 4;
 	wlink_usb->cmd_size_rx = 5;
 	wlink_cmd_rw();
