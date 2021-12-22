@@ -1,6 +1,6 @@
 /***************************************************************************
- *   Copyright (C) 2016-2017 by Nuvoton                                    *
- *   Zale Yu <cyyu@nuvoton.com>                                            *
+ *   Copyright (C) 2021 by Xu Ruijun                                       *
+ *   Xu Ruijun <1687701765@qq.com>                                         *
  *                                                                         *
  *   This program is free software; you can redistribute it and/or modify  *
  *   it under the terms of the GNU General Public License as published by  *
