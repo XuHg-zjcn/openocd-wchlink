@@ -152,6 +152,15 @@ static int wlink_init(void)
 		return ERROR_FAIL;
 	}
 
+	h_u32_to_be(wlink_usb->cmdbuf, CMD_INIT3);
+	wlink_usb->cmd_size_tx = 4;
+	wlink_usb->cmd_size_rx = 4;
+	wlink_cmd_rw();
+	if(be_to_h_u32(wlink_usb->cmdbuf) != 0x820d0103){
+		LOG_ERROR("WCH-Link init3 failed");
+		return ERROR_FAIL;
+	}
+
 	return ERROR_OK;
 }
 
