@@ -74,14 +74,23 @@ static int wlink_cmd_rw(void)
 {
 	int tr, ret;
 
-        ret = jtag_libusb_bulk_write(wlink_usb->dev_handle, EP_CMD_TX, (char *)wlink_usb->cmdbuf,
-                                     wlink_usb->cmd_size_tx, WLINK_WRITE_TIMEOUT, &tr);
-        if (ret || tr != wlink_usb->cmd_size_tx)
-                return ERROR_FAIL;
-	ret = jtag_libusb_bulk_read(wlink_usb->dev_handle, EP_CMD_RX, (char *)wlink_usb->cmdbuf,
-				    wlink_usb->cmd_size_rx, WLINK_READ_TIMEOUT, &tr);
-	if (ret || tr != wlink_usb->cmd_size_rx)
-		return ERROR_FAIL;
+	if(wlink_usb->cmd_size_tx){
+        	ret = jtag_libusb_bulk_write(wlink_usb->dev_handle, EP_CMD_TX, (char *)wlink_usb->cmdbuf,
+		                             wlink_usb->cmd_size_tx, WLINK_WRITE_TIMEOUT, &tr);
+		if (ret || tr != wlink_usb->cmd_size_tx){
+			wlink_usb->cmd_size_tx = tr;
+			return ERROR_FAIL;
+		}
+	}
+
+	if(wlink_usb->cmd_size_rx){
+		ret = jtag_libusb_bulk_read(wlink_usb->dev_handle, EP_CMD_RX, (char *)wlink_usb->cmdbuf,
+		                            wlink_usb->cmd_size_rx, WLINK_READ_TIMEOUT, &tr);
+		if (ret || tr != wlink_usb->cmd_size_rx){
+			wlink_usb->cmd_size_rx = tr;
+			return ERROR_FAIL;
+		}
+	}
 
         return ERROR_OK;
 }
@@ -130,7 +139,7 @@ static int wlink_init(void)
 
 	h_u32_to_be(wlink_usb->cmdbuf, CMD_GET_VERSION);
 	wlink_usb->cmd_size_tx = 4;
-	wlink_usb->cmd_size_rx = 5;
+	wlink_usb->cmd_size_rx = 6;
 	wlink_cmd_rw();
 	LOG_INFO("WCH-Link version %d.%d", wlink_usb->cmdbuf[3], wlink_usb->cmdbuf[4]);
 	return ERROR_OK;
